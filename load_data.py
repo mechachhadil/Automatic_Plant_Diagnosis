@@ -1,48 +1,52 @@
 import tensorflow as tf
+from config import DATASET_PATH, IMAGE_SIZE, BATCH_SIZE, VALIDATION_SPLIT, SEED
 
-dataset_path = "data/raw/plantvillage_dataset/color"
+def load_datasets():
+    # Dataset 1 : original
+    train_dataset = tf.keras.utils.image_dataset_from_directory(
+        DATASET_PATH,
+        validation_split=VALIDATION_SPLIT,
+        subset="training",
+        seed=SEED,
+        image_size=IMAGE_SIZE,
+        batch_size=BATCH_SIZE
+    )
 
-IMAGE_SIZE = (128, 128)
-BATCH_SIZE = 32
+    val_dataset = tf.keras.utils.image_dataset_from_directory(
+        DATASET_PATH,
+        validation_split=VALIDATION_SPLIT,
+        subset="validation",
+        seed=SEED,
+        image_size=IMAGE_SIZE,
+        batch_size=BATCH_SIZE
+    )
 
-# Chargement
-train_dataset = tf.keras.utils.image_dataset_from_directory(
-    dataset_path,
-    validation_split=0.2,
-    subset="training",
-    seed=42,
-    image_size=IMAGE_SIZE,
-    batch_size=BATCH_SIZE
-)
+    class_names = train_dataset.class_names
+    num_classes = len(class_names)
 
-val_dataset = tf.keras.utils.image_dataset_from_directory(
-    dataset_path,
-    validation_split=0.2,
-    subset="validation",
-    seed=42,
-    image_size=IMAGE_SIZE,
-    batch_size=BATCH_SIZE
-)
+    # -----------------------------
+    # Data augmentation (Dataset 2)
+    # -----------------------------
+    data_augmentation = tf.keras.Sequential([
+        tf.keras.layers.RandomFlip("horizontal"),
+        tf.keras.layers.RandomRotation(0.2),
+        tf.keras.layers.RandomZoom(0.2),
+        tf.keras.layers.RandomContrast(0.2),
+    ])
+    train_dataset = train_dataset.map(lambda x, y: (data_augmentation(x), y))
 
-class_names = train_dataset.class_names
+    # -----------------------------
+    # Normalisation
+    # -----------------------------
+    normalization_layer = tf.keras.layers.Rescaling(1./255)
+    train_dataset = train_dataset.map(lambda x, y: (normalization_layer(x), y))
+    val_dataset = val_dataset.map(lambda x, y: (normalization_layer(x), y))
 
-print("Number of classes:", len(class_names))
-print("Classes:", class_names)
+    # -----------------------------
+    # Performance optimisation
+    # -----------------------------
+    AUTOTUNE = tf.data.AUTOTUNE
+    train_dataset = train_dataset.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
+    val_dataset = val_dataset.cache().prefetch(buffer_size=AUTOTUNE)
 
-# -----------------------------
-# Normalisation (important)
-# -----------------------------
-normalization_layer = tf.keras.layers.Rescaling(1./255)
-
-train_dataset = train_dataset.map(lambda x, y: (normalization_layer(x), y))
-val_dataset = val_dataset.map(lambda x, y: (normalization_layer(x), y))
-
-# -----------------------------
-# Optimisation performance
-# -----------------------------
-AUTOTUNE = tf.data.AUTOTUNE
-
-train_dataset = train_dataset.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
-val_dataset = val_dataset.cache().prefetch(buffer_size=AUTOTUNE)
-
-print("Dataset ready for CNN training.")
+    return train_dataset, val_dataset, class_names, num_classes

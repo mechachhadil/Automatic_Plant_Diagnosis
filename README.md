@@ -104,6 +104,23 @@ This pipeline provides a computational baseline and interpretable feature reduct
 - PCA + SVM suffers from information loss due to dimensionality reduction.
 - Deep learning scales better with dataset size and complexity.
 
+### Model Performance plots
+
+#### CNN Accuracy
+![CNN Accuracy](figures/cnn_accuracy.png)
+
+#### CNN Loss
+![CNN Loss](figures/cnn_loss.png)
+
+#### Top 10 worst recall
+![Top 10 worst recall](figures/worst_recall_top10.png)
+
+#### f1 per class
+![f1 per class](figures/f1_per_class.png)
+
+#### Model Comparison
+![Model Comparison](figures/model_comparison.png)
+
 ---
 
 ## Installation
@@ -135,6 +152,7 @@ Evaluate model: python evaluate.py
 
 Run classical ML pipeline: python ml_pipeline.py
 
+Run plot_results.py
 
 ---
 
@@ -156,6 +174,7 @@ Run classical ML pipeline: python ml_pipeline.py
 - Scikit-learn
 - NumPy
 - Matplotlib
+- OpenCV
 - Git / GitHub
 
 ---

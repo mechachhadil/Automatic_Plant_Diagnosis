@@ -1,103 +1,49 @@
+# train.py
+import os
+import pickle
 import tensorflow as tf
 from model import build_cnn_model
+from load_data import load_datasets
+from config import MODEL_DIR, MODEL_FILE, HISTORY_FILE, LEARNING_RATE, EPOCHS, PATIENCE
 
-dataset_path = "data/raw/plantvillage_dataset/color"
+# Charger dataset
+train_dataset, val_dataset, class_names, num_classes = load_datasets()
 
-IMAGE_SIZE = (128, 128)
-BATCH_SIZE = 32
-
-# -----------------------------
-# LOAD DATASET
-# -----------------------------
-
-train_dataset = tf.keras.utils.image_dataset_from_directory(
-    dataset_path,
-    validation_split=0.2,
-    subset="training",
-    seed=42,
-    image_size=IMAGE_SIZE,
-    batch_size=BATCH_SIZE
-)
-
-val_dataset = tf.keras.utils.image_dataset_from_directory(
-    dataset_path,
-    validation_split=0.2,
-    subset="validation",
-    seed=42,
-    image_size=IMAGE_SIZE,
-    batch_size=BATCH_SIZE
-)
-
-class_names = train_dataset.class_names
-num_classes = len(class_names)
-
-# -----------------------------
-# DATA AUGMENTATION (Dataset 2)
-# -----------------------------
-
-data_augmentation = tf.keras.Sequential([
-    tf.keras.layers.RandomFlip("horizontal"),
-    tf.keras.layers.RandomRotation(0.2),
-    tf.keras.layers.RandomZoom(0.2),
-    tf.keras.layers.RandomContrast(0.2),
-])
-
-train_dataset = train_dataset.map(lambda x, y: (data_augmentation(x), y))
-
-# -----------------------------
-# NORMALISATION
-# -----------------------------
-
-normalization_layer = tf.keras.layers.Rescaling(1./255)
-
-train_dataset = train_dataset.map(lambda x, y: (normalization_layer(x), y))
-val_dataset = val_dataset.map(lambda x, y: (normalization_layer(x), y))
-
-# -----------------------------
-# PERFORMANCE OPTIMISATION
-# -----------------------------
-
-AUTOTUNE = tf.data.AUTOTUNE
-train_dataset = train_dataset.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
-val_dataset = val_dataset.cache().prefetch(buffer_size=AUTOTUNE)
-
-# -----------------------------
-# BUILD MODEL
-# -----------------------------
-
+# Build model
 model = build_cnn_model(num_classes)
-
 model.compile(
-    optimizer=tf.keras.optimizers.Adam(learning_rate=0.0005),
+    optimizer=tf.keras.optimizers.Adam(learning_rate=LEARNING_RATE),
     loss='sparse_categorical_crossentropy',
     metrics=['accuracy']
 )
-
 model.summary()
 
-# -----------------------------
-# EARLY STOPPING
-# -----------------------------
-
+# Callbacks avancés
 early_stop = tf.keras.callbacks.EarlyStopping(
     monitor='val_loss',
-    patience=5,
+    patience=PATIENCE,
     restore_best_weights=True
 )
+reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(
+    monitor='val_loss',
+    factor=0.5,
+    patience=3,
+    min_lr=1e-6
+)
+os.makedirs(MODEL_DIR, exist_ok=True)
 
-# -----------------------------
-# TRAIN
-# -----------------------------
-
+# Train
 history = model.fit(
     train_dataset,
     validation_data=val_dataset,
-    epochs=30,
-    callbacks=[early_stop]
+    epochs=EPOCHS,
+    callbacks=[early_stop, reduce_lr]
 )
 
-# -----------------------------
-# SAVE MODEL
-# -----------------------------
+# Sauvegarder history
+with open(HISTORY_FILE, "wb") as f:
+    pickle.dump(history.history, f)
 
-model.save("models/plant_cnn.h5")
+# Sauvegarder modèle
+model.save(MODEL_FILE)
+print(f"Model saved at {MODEL_FILE}")
