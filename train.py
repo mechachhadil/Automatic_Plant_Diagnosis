@@ -1,4 +1,3 @@
-# train.py
 import os
 import pickle
 import tensorflow as tf
@@ -83,3 +82,6 @@ with open(HISTORY_FILE, "wb") as f:
 model.save(MODEL_FILE)
 
 print(f"Model saved at {MODEL_FILE}")
+
+with open("models/class_names.pkl", "wb") as f:
+    pickle.dump(class_names, f)

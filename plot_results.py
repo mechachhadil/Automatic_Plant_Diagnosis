@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report,confusion_matrix, ConfusionMatrixDisplay
 
 from load_data import load_datasets
 import config
@@ -77,6 +77,32 @@ report = classification_report(
     target_names=class_names,
     output_dict=True
 )
+
+# ===============================
+# NORMALIZED CONFUSION MATRIX
+# ===============================
+
+cm = confusion_matrix(y_true, y_pred, normalize='true')
+
+plt.figure(figsize=(12, 10))
+
+disp = ConfusionMatrixDisplay(
+    confusion_matrix=cm,
+    display_labels=class_names
+)
+
+disp.plot(
+    cmap=plt.cm.Blues,
+    xticks_rotation=90,
+    values_format=".2f"
+)
+
+plt.title("Normalized Confusion Matrix")
+plt.tight_layout()
+
+plt.savefig(os.path.join(FIGURES_DIR, "confusion_matrix_normalized.png"), dpi=300)
+
+plt.show()
 
 recalls = np.array([report[c]["recall"] for c in class_names])
 f1_scores = np.array([report[c]["f1-score"] for c in class_names])

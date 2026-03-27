@@ -5,31 +5,40 @@ Deep Learning vs Classical Machine Learning for Plant Disease Classification
 
 This project presents a comparative study between Deep Learning and Classical Machine Learning approaches for automated plant disease diagnosis using image data.
 
-A Convolutional Neural Network (CNN) is compared against a PCA + Support Vector Machine (SVM) pipeline. The objective is to analyze performance differences, scalability, and robustness across methodologies.
+The problem is formulated as a **supervised multi-class image classification task**, where an input image of a plant leaf is mapped to a predefined disease category.
 
-The study highlights the superiority of deep learning for raw image classification tasks while providing a rigorous baseline using traditional ML methods.
+A **transfer learning-based Convolutional Neural Network (MobileNetV2)** is compared against a **PCA + Support Vector Machine (SVM)** pipeline. The objective is to evaluate performance, robustness, and scalability across fundamentally different paradigms.
+
+Results demonstrate the superiority of deep learning models for high-dimensional visual data, while classical methods provide a valuable interpretable baseline.
 
 ---
 ```text
 ## Project Architecture
-Automatic_Desert_Plant_Diagnosis/
+
+Automatic_Plant_Diagnosis/
 │
-├── data/ # Dataset (not included – 4GB)
-│ └── raw/
-│ └── plantvillage_dataset/
-│ └── color/
-│ └── grayscale/
-│ └── segmented/
+├── data/ # Dataset (not included)
+│ ├── raw/ # Original dataset
+│ │ └── Palm_Leaves_Dataset/
+│ │
+│ └── synthetic/ # Generated dataset (augmentation-based)
 │
-├── models/ # Saved trained models (ignored)
+├── models/ # Saved models & artifacts (ignored)
+│ ├── plant_cnn.keras
+│ ├── training_history.pkl
+│ ├── ml_accuracy.pkl
+│ └── class_names.pkl
 │
-├── train.py # CNN training pipeline
-├── model.py # CNN architecture definition
-├── evaluate.py # Performance evaluation
-├── ml_pipeline.py # PCA + SVM implementation
-├── load_data.py # Data loading utilities
-├── visualize_data.py # Dataset visualization
-├── test_env.py # Environment validation
+├── figures/ # Generated plots
+│
+├── config.py # Central configuration (paths, hyperparameters)
+├── train.py # CNN training + fine-tuning pipeline
+├── model.py # CNN architecture (MobileNetV2)
+├── load_data.py # Data loading and preprocessing
+├── generate_synthetic.py # Synthetic dataset generation
+├── ml_pipeline.py # PCA + SVM pipeline with cross-validation
+├── plot_results.py # Evaluation plots and metrics
+├── predict.py # Inference script (single image prediction)
 │
 ├── requirements.txt
 ├── .gitignore
@@ -41,51 +50,91 @@ The repository follows a modular and reproducible research-oriented structure.
 
 ## Dataset
 
-This project uses the **PlantVillage Dataset (Color Version)**.
+This project uses the **Palm Leaf Disease Dataset**.
 
 Source:
-https://www.kaggle.com/datasets/abdallahalidev/plantvillage-dataset
+https://www.kaggle.com/code/rabiehoussaini/palm-deseas-detection/input
 
-⚠️ The dataset (~4GB) is not included in this repository.
+⚠️ The dataset is not included in this repository.
 
-After downloading, place it in:
-data/raw/plantvillage_dataset/color/
+### Expected structure:
 
 ```text
 Expected structure:
-color/
+data/raw/Palm_Leaves_Dataset/
 ├── class_1/
 ├── class_2/
 ├── class_3/
 └── ...
+
+Each folder represents a disease category.
 ```
 
 ---
+## Problem Formulation
+
+The task is defined as:
+
+- **Input**: RGB image of a plant leaf  
+- **Output**: Probability distribution over disease classes  
+
+The predicted label corresponds to: argmax P(y | x)
+
+This is a **supervised multi-class classification problem**.
 
 ## Methodology
 
 ### 🔵 Deep Learning Approach
 
-- Custom Convolutional Neural Network
-- Data Augmentation (Flip, Rotation, Zoom, Contrast)
-- Rescaling Normalization
-- Adam Optimizer
-- Early Stopping
-- Sparse Categorical Crossentropy
+- **Model**: MobileNetV2 (pretrained on ImageNet)
+- **Transfer Learning**:
+  - Frozen base model (feature extractor)
+  - Fine-tuning of top layers
+- **Preprocessing**:
+  - MobileNetV2 normalization
+- **Data Augmentation**:
+  - Flip, rotation, zoom, brightness, contrast
+- **Regularization**:
+  - Dropout
+  - Batch normalization
+- **Optimization**:
+  - Adam optimizer
+  - Learning rate scheduling
+  - Early stopping
 
-The CNN learns hierarchical spatial features directly from raw pixel data.
+The CNN automatically learns hierarchical visual features from raw images.
 
 ---
 
 ### 🟠 Classical Machine Learning Approach
 
-- Image flattening
-- Feature extraction
-- PCA for dimensionality reduction
-- Support Vector Machine (SVM)
-- 5-Fold Cross Validation
+- Image resizing + grayscale conversion
+- Flattening (vectorization)
+- Standardization
+- PCA (dimensionality reduction)
+- SVM (RBF kernel)
+- 5-Fold Stratified Cross-Validation
 
-This pipeline provides a computational baseline and interpretable feature reduction strategy.
+This pipeline provides:
+- Lower computational cost
+- Interpretable feature compression
+- Baseline comparison
+
+---
+
+### 🟣 Synthetic Data Generation
+
+A secondary dataset is generated using data augmentation:
+
+- Random flip
+- Rotation
+- Zoom
+- Contrast / brightness variation
+
+Purpose:
+- Increase dataset diversity
+- Improve model generalization
+- Reduce overfitting
 
 ---
 
@@ -93,16 +142,17 @@ This pipeline provides a computational baseline and interpretable feature reduct
 
 | Model | Accuracy |
 |-------|----------|
-| CNN | ~94% |
-| PCA + SVM | ~65% |
-| K-Fold Mean Accuracy | ~65% |
-| K-Fold Std | ~0.004 |
+| CNN | ~82% |
+| PCA + SVM | ~35% |
+| K-Fold Mean Accuracy | ~35% |
+| K-Fold Std | ~0.011 |
 
 ### Interpretation
 
-- CNN significantly outperforms classical ML on high-dimensional image data.
-- PCA + SVM suffers from information loss due to dimensionality reduction.
-- Deep learning scales better with dataset size and complexity.
+- CNN significantly outperforms classical ML on image data
+- PCA introduces information loss
+- Transfer learning improves convergence and accuracy
+- SVM remains a useful lightweight baseline
 
 ### Model Performance plots
 
@@ -111,6 +161,9 @@ This pipeline provides a computational baseline and interpretable feature reduct
 
 #### CNN Loss
 ![CNN Loss](figures/cnn_loss.png)
+
+### Confusion Matrix
+![Confusion Matrix](figures/confusion_matrix_normalized.png)
 
 #### Top 10 worst recall
 ![Top 10 worst recall](figures/worst_recall_top10.png)
@@ -148,18 +201,20 @@ pip install -r requirements.txt
 
 Train CNN: python train.py
 
-Evaluate model: python evaluate.py
+Generate Synthetic Dataset: python generate_dataset2.py
 
-Run classical ML pipeline: python ml_pipeline.py
+Run ML pipeline: python ml_pipeline.py
 
-Run plot_results.py
+Plot Results: python plot_results.py
+
+Predict on New Image: python predict.py
 
 ---
 
 ## Reproducibility
 
 - Dataset must be manually downloaded from Kaggle.
-- Ensure correct dataset path: data/raw/plantvillage_dataset/color
+- Paths must match config.py
   
 
 - Dependencies listed in `requirements.txt`
@@ -175,34 +230,44 @@ Run plot_results.py
 - NumPy
 - Matplotlib
 - OpenCV
-- Git / GitHub
 
 ---
 
 ## Key Contributions
 
-- End-to-end CNN training pipeline
-- Comparative ML baseline
-- Cross-validation performance analysis
-- Modular architecture
-- Reproducible academic structure
+- Transfer learning-based CNN pipeline
+- Synthetic dataset generation
+- Comparative ML baseline (PCA + SVM)
+- Cross-validation evaluation
+- Full inference pipeline (predict.py)
+- Reproducible modular architecture
+
+---
+
+## Limitations
+
+- Dataset size may limit generalization
+- Synthetic data may introduce bias
+- No real-time deployment yet
 
 ---
 
 ## Future Work
 
-- Transfer Learning (EfficientNet / ResNet)
-- Model quantization for edge deployment
-- Grad-CAM interpretability analysis
-- Deployment via FastAPI or Streamlit
-- Extension to real desert plant datasets
-
+- Grad-CAM interpretability
+- Deployment (Streamlit / FastAPI)
+- Edge optimization (quantization)
+- Larger real-world datasets
+- Multi-disease detection per image
 ---
 
 ## Author
 
-Mira Allali  
-PhD Researcher – Networks and Security
+Mira Allali — PhD Researcher (Networks & Security)
+Berrached Assia — PhD Researcher (Architecture)
+Cherki Asma Nada — PhD Researcher (English Literature and Civilisation)
+Mechache Hadil Hadjer — PhD Researcher (English Language and Culture)
+Mouharar Ahlam — PhD Researcher (English Language and Culture)
 
 ---
 
