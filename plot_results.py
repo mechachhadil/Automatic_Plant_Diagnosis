@@ -115,7 +115,7 @@ worst_recalls = recalls[worst_indices]
 plt.figure(figsize=(10,6))
 plt.barh(worst_classes, worst_recalls)
 plt.xlabel("Recall")
-plt.title("Top-10 Classes with Worst Recall")
+plt.title("Classes with Worst Recall")
 plt.xlim(0, 1)
 plt.gca().invert_yaxis()
 plt.tight_layout()
